@@ -57,6 +57,61 @@ include 'includes/header.php';
     </div>
 </section>
 
+<!-- Sección Formulario de Contacto / Adopción -->
+<section id="contacto" class="bg-light py-5 border-top">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <h2 class="text-center mb-3">Solicitud de Adopción</h2>
+                <p class="text-center text-muted mb-4">¿Te has enamorado de alguno de nuestros peluditos? Déjanos tus datos y nos pondremos en contacto contigo.</p>
+
+                <!-- Mensajes de feedback tras enviar el formulario -->
+                <?php if (isset($_GET['status']) && $_GET['status'] == 'success'): ?>
+                    <div class="alert alert-success text-center">¡Solicitud enviada con éxito! Nos pondremos en contacto pronto.</div>
+                <?php elseif (isset($_GET['status']) && $_GET['status'] == 'error'): ?>
+                    <div class="alert alert-danger text-center">Hubo un error al enviar tu solicitud. Inténtalo de nuevo.</div>
+                <?php endif; ?>
+
+                <form action="procesar_adopcion.php" method="POST" class="bg-white p-4 rounded shadow-sm">
+                    <div class="mb-3">
+                        <label for="animal_id" class="form-label fw-bold">Animal en el que estás interesado</label>
+                        <select name="animal_id" id="animal_id" class="form-select" required>
+                            <option value="" selected disabled>-- Selecciona un animal --</option>
+                            <?php foreach ($animales as $animal): ?>
+                                <option value="<?php echo $animal['id']; ?>">
+                                    <?php echo htmlspecialchars($animal['nombre']) . " (" . $animal['especie'] . ")"; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label fw-bold">Tu Nombre Completo</label>
+                        <input type="text" name="nombre" id="nombre" class="form-control" placeholder="Ej. María García" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label fw-bold">Correo Electrónico</label>
+                        <input type="email" name="email" id="email" class="form-control" placeholder="tu@email.com" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="telefono" class="form-label fw-bold">Teléfono de Contacto</label>
+                        <input type="tel" name="telefono" id="telefono" class="form-control" placeholder="Ej. 612345678">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="mensaje" class="form-label fw-bold">¿Por qué te gustaría adoptar?</label>
+                        <textarea name="mensaje" id="mensaje" rows="3" class="form-control" placeholder="Cuéntanos un poco sobre tu hogar o experiencia previa..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 btn-lg">Enviar Solicitud</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
 <?php 
 // 4. Incluimos el pie de página
 include 'includes/footer.php'; 
