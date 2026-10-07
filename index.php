@@ -2,9 +2,28 @@
 // 1. Incluimos la conexión a la Base de Datos
 require_once 'conexion.php';
 
-// 2. Consultamos solo los animales que están 'Disponibles'
+// 2. Captura y saneamiento de filtros
+$filtro_especie = trim($_GET['especie'] ?? '');
+$filtro_busqueda = trim($_GET['buscar'] ?? '');
+
+$sql = "SELECT * FROM animales WHERE estado = 'Disponible'";
+$params = [];
+
+if (!empty($filtro_especie)) {
+    $sql .= " AND especie = :especie";
+    $params[':especie'] = $filtro_especie;
+}
+
+if (!empty($filtro_busqueda)) {
+    $sql .= " AND nombre LIKE :buscar";
+    $params[':buscar'] = '%' . $filtro_busqueda . '%';
+}
+
+$sql .= " ORDER BY fecha_ingreso DESC";
+
 try {
-    $stmt = $pdo->query("SELECT * FROM animales WHERE estado = 'Disponible' ORDER BY fecha_ingreso DESC");
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
     $animales = $stmt->fetchAll();
 } catch (\PDOException $e) {
     die("Error al consultar animales: " . $e->getMessage());
@@ -27,13 +46,42 @@ include 'includes/header.php';
 <section id="animales" class="container my-5">
     <h2 class="text-center mb-4 font-weight-bold">Nuestros Peluditos en Adopción</h2>
 
+    <!-- Formulario de Búsqueda y Filtros -->
+    <div class="row justify-content-center mb-4">
+        <div class="col-md-8">
+            <form action="index.php#animales" method="GET" class="row g-2 bg-white p-3 rounded shadow-sm border">
+                <div class="col-md-5">
+                    <input type="text" name="buscar" class="form-control" placeholder="Buscar por nombre..." value="<?php echo htmlspecialchars($filtro_busqueda); ?>">
+                </div>
+                <div class="col-md-4">
+                    <select name="especie" class="form-select">
+                        <option value="">Todas las especies</option>
+                        <option value="Perro" <?php echo ($filtro_especie === 'Perro') ? 'selected' : ''; ?>>Perros</option>
+                        <option value="Gato" <?php echo ($filtro_especie === 'Gato') ? 'selected' : ''; ?>>Gatos</option>
+                        <option value="Otros" <?php echo ($filtro_especie === 'Otros') ? 'selected' : ''; ?>>Otros</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                    <?php if (!empty($filtro_especie) || !empty($filtro_busqueda)): ?>
+                        <a href="index.php#animales" class="btn btn-outline-secondary">Limpiar</a>
+                    <?php endif; ?>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="row g-4">
         <?php if (count($animales) > 0): ?>
             <?php foreach ($animales as $animal): ?>
                 <div class="col-md-6 col-lg-4">
                     <div class="card h-100 shadow-sm border-0">
-                        <!-- Foto genérica según especie si no hay foto real subida -->
-                        <img src="https://placehold.co/600x400/e9ecef/212529?text=<?php echo $animal['especie']; ?>" class="card-img-top" alt="<?php echo htmlspecialchars($animal['nombre']); ?>">
+                        <?php 
+                            $ruta_foto = !empty($animal['imagen']) && file_exists('img/' . $animal['imagen']) 
+                                         ? 'img/' . $animal['imagen'] 
+                                         : 'https://placehold.co/600x400/e9ecef/212529?text=' . urlencode($animal['especie']);
+                        ?>
+                        <img src="<?php echo $ruta_foto; ?>" class="card-img-top animal-img" alt="<?php echo htmlspecialchars($animal['nombre']); ?>">
                         
                         <div class="card-body d-flex flex-column">
                             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -41,7 +89,7 @@ include 'includes/header.php';
                                 <span class="badge bg-info text-dark"><?php echo htmlspecialchars($animal['especie']); ?></span>
                             </div>
                             <p class="card-text text-muted small mb-1"><strong>Raza:</strong> <?php echo htmlspecialchars($animal['raza']); ?></p>
-                            <p class="card-text text-muted small mb-3"><strong>Edad:</strong> <?php echo $animal['edad']; ?> años</p>
+                            <p class="card-text text-muted small mb-3"><strong>Edad:</strong> <?php echo (int)$animal['edad']; ?> años</p>
                             <p class="card-text flex-grow-1"><?php echo htmlspecialchars($animal['descripcion']); ?></p>
                             
                             <a href="#contacto" class="btn btn-outline-primary w-100 mt-3">Solicitar Adopción</a>
@@ -51,7 +99,7 @@ include 'includes/header.php';
             <?php endforeach; ?>
         <?php else: ?>
             <div class="col-12">
-                <div class="alert alert-info text-center">Actualmente no hay animales registrados en adopción.</div>
+                <div class="alert alert-info text-center">No se han encontrado animales con los criterios seleccionados.</div>
             </div>
         <?php endif; ?>
     </div>
@@ -65,7 +113,6 @@ include 'includes/header.php';
                 <h2 class="text-center mb-3">Solicitud de Adopción</h2>
                 <p class="text-center text-muted mb-4">¿Te has enamorado de alguno de nuestros peluditos? Déjanos tus datos y nos pondremos en contacto contigo.</p>
 
-                <!-- Mensajes de feedback tras enviar el formulario -->
                 <?php if (isset($_GET['status']) && $_GET['status'] == 'success'): ?>
                     <div class="alert alert-success text-center">¡Solicitud enviada con éxito! Nos pondremos en contacto pronto.</div>
                 <?php elseif (isset($_GET['status']) && $_GET['status'] == 'error'): ?>
@@ -78,8 +125,8 @@ include 'includes/header.php';
                         <select name="animal_id" id="animal_id" class="form-select" required>
                             <option value="" selected disabled>-- Selecciona un animal --</option>
                             <?php foreach ($animales as $animal): ?>
-                                <option value="<?php echo $animal['id']; ?>">
-                                    <?php echo htmlspecialchars($animal['nombre']) . " (" . $animal['especie'] . ")"; ?>
+                                <option value="<?php echo (int)$animal['id']; ?>">
+                                    <?php echo htmlspecialchars($animal['nombre']) . " (" . htmlspecialchars($animal['especie']) . ")"; ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
