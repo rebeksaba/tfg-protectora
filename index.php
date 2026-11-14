@@ -89,7 +89,7 @@ include 'includes/header.php';
                                 <span class="badge bg-info text-dark"><?php echo htmlspecialchars($animal['especie']); ?></span>
                             </div>
                             <p class="card-text text-muted small mb-1"><strong>Raza:</strong> <?php echo htmlspecialchars($animal['raza']); ?></p>
-                            <p class="card-text text-muted small mb-3"><strong>Edad:</strong> <?php echo (int)$animal['edad']; ?> años</p>
+                            <p class="card-text text-muted small mb-3"><strong>Edad:</strong> <?php echo htmlspecialchars($animal['edad']); ?></p>
                             <p class="card-text flex-grow-1"><?php echo htmlspecialchars($animal['descripcion']); ?></p>
                             
                             <a href="#contacto" class="btn btn-outline-primary w-100 mt-3">Solicitar Adopción</a>
